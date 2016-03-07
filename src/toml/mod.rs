@@ -347,8 +347,8 @@ impl Config {
     }
 
     /// Returns the log4rs `Config`.
-    pub fn config(&self) -> &config::Config {
-        &self.config
+    pub fn config(self) -> config::Config {
+        self.config
     }
 }
 
