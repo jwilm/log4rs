@@ -101,6 +101,7 @@
 #![doc(html_root_url="https://sfackler.github.io/log4rs/doc/v0.4.3")]
 #![warn(missing_docs)]
 
+#[macro_use] extern crate serde_derive;
 extern crate antidote;
 extern crate chrono;
 extern crate crossbeam;
