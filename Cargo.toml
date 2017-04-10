@@ -18,10 +18,11 @@ crossbeam = "0.2.9"
 kernel32-sys = "0.2"
 libc = "0.2"
 log = "0.3"
-serde = "0.7"
-serde-value = "0.2"
+serde = "0.9"
+serde_derive = "0.9"
+serde-value = "0.4"
 typemap = "0.3"
 winapi = "0.2"
-serde_json = { version = "0.7", optional = true }
-serde_yaml = { version = "0.2", optional = true }
-toml = { version = "0.1.28", optional = true, default_features = false, features = ["serde"] }
+serde_json = { version = "0.9", optional = true }
+serde_yaml = { version = "0.6", optional = true }
+toml = { version = "0.3", optional = true, default_features = false, features = ["serde"] }

@@ -22,7 +22,7 @@ pub struct Config {
 }
 
 impl de::Deserialize for Config {
-    fn deserialize<D>(d: &mut D) -> Result<Config, D::Error>
+    fn deserialize<D>(d: D) -> Result<Config, D::Error>
         where D: de::Deserializer
     {
         let PrivConfig { refresh_rate, root, appenders, loggers } =
@@ -46,7 +46,7 @@ pub struct Root {
 }
 
 impl de::Deserialize for Root {
-    fn deserialize<D>(d: &mut D) -> Result<Root, D::Error>
+    fn deserialize<D>(d: D) -> Result<Root, D::Error>
         where D: de::Deserializer
     {
         let PrivRoot { level, appenders } = try!(PrivRoot::deserialize(d));
@@ -68,7 +68,7 @@ pub struct Logger {
 }
 
 impl de::Deserialize for Logger {
-    fn deserialize<D>(d: &mut D) -> Result<Logger, D::Error>
+    fn deserialize<D>(d: D) -> Result<Logger, D::Error>
         where D: de::Deserializer
     {
         let PrivLogger { level, appenders, additive } = try!(PrivLogger::deserialize(d));
@@ -90,7 +90,7 @@ pub struct Appender {
 }
 
 impl Deserialize for Appender {
-    fn deserialize<D>(d: &mut D) -> Result<Appender, D::Error>
+    fn deserialize<D>(d: D) -> Result<Appender, D::Error>
         where D: Deserializer
     {
         let mut map = try!(BTreeMap::<Value, Value>::deserialize(d));
@@ -120,7 +120,7 @@ pub struct Filter {
 }
 
 impl Deserialize for Filter {
-    fn deserialize<D>(d: &mut D) -> Result<Filter, D::Error>
+    fn deserialize<D>(d: D) -> Result<Filter, D::Error>
         where D: Deserializer
     {
         let mut map = try!(BTreeMap::<Value, Value>::deserialize(d));
@@ -143,7 +143,7 @@ pub struct Encoder {
 }
 
 impl Deserialize for Encoder {
-    fn deserialize<D>(d: &mut D) -> Result<Encoder, D::Error>
+    fn deserialize<D>(d: D) -> Result<Encoder, D::Error>
         where D: Deserializer
     {
         let mut map = try!(BTreeMap::<Value, Value>::deserialize(d));

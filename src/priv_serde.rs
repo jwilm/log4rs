@@ -1,4 +1,5 @@
-use serde::de;
+use std::fmt;
+use serde::de::{self, Unexpected};
 use log::LogLevelFilter;
 use std::time::Duration;
 
@@ -6,7 +7,7 @@ use std::time::Duration;
 pub struct DeLogLevelFilter(pub LogLevelFilter);
 
 impl de::Deserialize for DeLogLevelFilter {
-    fn deserialize<D>(d: &mut D) -> Result<DeLogLevelFilter, D::Error>
+    fn deserialize<D>(d: D) -> Result<DeLogLevelFilter, D::Error>
         where D: de::Deserializer
     {
         struct V;
@@ -14,10 +15,14 @@ impl de::Deserialize for DeLogLevelFilter {
         impl de::Visitor for V {
             type Value = DeLogLevelFilter;
 
-            fn visit_str<E>(&mut self, v: &str) -> Result<DeLogLevelFilter, E>
+            fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                f.write_str("string")
+            }
+
+            fn visit_str<E>(self, v: &str) -> Result<DeLogLevelFilter, E>
                 where E: de::Error
             {
-                v.parse().map(DeLogLevelFilter).map_err(|_| E::invalid_value(v))
+                v.parse().map(DeLogLevelFilter).map_err(|_| E::invalid_value(Unexpected::Str(v), &self))
             }
         }
 
@@ -29,7 +34,7 @@ impl de::Deserialize for DeLogLevelFilter {
 pub struct DeDuration(pub Duration);
 
 impl de::Deserialize for DeDuration {
-    fn deserialize<D>(d: &mut D) -> Result<DeDuration, D::Error>
+    fn deserialize<D>(d: D) -> Result<DeDuration, D::Error>
         where D: de::Deserializer
     {
         u64::deserialize(d).map(|r| DeDuration(Duration::from_secs(r)))

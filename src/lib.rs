@@ -101,6 +101,7 @@
 #![doc(html_root_url="https://sfackler.github.io/log4rs/doc/v0.4.3")]
 #![warn(missing_docs)]
 
+#[macro_use] extern crate serde_derive;
 extern crate antidote;
 extern crate chrono;
 extern crate crossbeam;
@@ -138,9 +139,9 @@ use file::{Format, Deserializers};
 
 pub mod append;
 pub mod config;
-pub mod filter;
-pub mod file;
 pub mod encode;
+pub mod file;
+pub mod filter;
 mod priv_serde;
 
 struct ConfiguredLogger {
@@ -303,6 +304,23 @@ impl SharedLogger {
     }
 }
 
+/// Runtime API for applications to interact with log4rs
+pub struct Handle {
+    inner: Arc<ArcCell<SharedLogger>>,
+}
+
+impl Handle {
+    /// Reopen file appender files
+    pub fn reopen(&self) -> io::Result<()> {
+        let shared = self.inner.get();
+        for appender in &shared.appenders {
+            try!(appender.appender.post_rotate());
+        }
+
+        Ok(())
+    }
+}
+
 struct Logger {
     inner: Arc<ArcCell<SharedLogger>>,
 }
@@ -341,12 +359,16 @@ fn handle_error<E: error::Error + ?Sized>(e: &E) {
 }
 
 /// Initializes the global logger as a log4rs logger with the provided config.
-pub fn init_config(config: config::Config) -> Result<(), SetLoggerError> {
-    log::set_logger(|max_log_level| {
+pub fn init_config(config: config::Config) -> Result<Handle, SetLoggerError> {
+    let mut handle = None;
+    try!(log::set_logger(|max_log_level| {
         let logger = Logger::new(config);
         max_log_level.set(logger.max_log_level());
+        handle = Some(Handle { inner: logger.inner.clone() });
         Box::new(logger)
-    })
+    }));
+
+    Ok(handle.take().unwrap())
 }
 
 /// Initializes the global logger as a log4rs logger configured via a file.
@@ -356,13 +378,15 @@ pub fn init_config(config: config::Config) -> Result<(), SetLoggerError> {
 ///
 /// Any nonfatal errors encountered when processing the configuration are
 /// reported to stderr.
-pub fn init_file<P: AsRef<Path>>(path: P, deserializers: Deserializers) -> Result<(), Error> {
+pub fn init_file<P: AsRef<Path>>(path: P, deserializers: Deserializers) -> Result<Handle, Error> {
     let path = path.as_ref().to_path_buf();
     let format = try!(get_format(&path));
     let source = try!(read_config(&path));
     let config = try!(parse_config(&source, format, &deserializers));
 
-    log::set_logger(move |max_log_level| {
+    let mut handle = None;
+
+    try!(log::set_logger(|max_log_level| {
         let refresh_rate = config.refresh_rate();
         let config = config.into_config();
         let logger = Logger::new(config);
@@ -377,9 +401,13 @@ pub fn init_file<P: AsRef<Path>>(path: P, deserializers: Deserializers) -> Resul
                                   &logger,
                                   max_log_level);
         }
+
+        handle = Some(Handle { inner: logger.inner.clone() });
         Box::new(logger)
-    })
-        .map_err(Into::into)
+    }));
+
+    // Must be some if set_logger did not err.
+    Ok(handle.take().unwrap())
 }
 
 /// An error initializing the logging framework from a file.

@@ -24,6 +24,7 @@ pub struct FileAppender {
     path: PathBuf,
     file: Mutex<SimpleWriter<BufWriter<File>>>,
     encoder: Box<Encode>,
+    append: bool,
 }
 
 impl fmt::Debug for FileAppender {
@@ -40,6 +41,26 @@ impl Append for FileAppender {
         let mut file = self.file.lock();
         try!(self.encoder.encode(&mut *file, record));
         try!(file.flush());
+        Ok(())
+    }
+
+    fn post_rotate(&self) -> io::Result<()> {
+        // Get lock for current file and flush any pending writes
+        let mut writer = self.file.lock();
+        try!(writer.flush());
+
+        // Try and open the file. If this fails, the old writer is still in place.
+        let file = try!(OpenOptions::new()
+                            .write(true)
+                            .append(self.append)
+                            .create(true)
+                            .open(self.path.as_path()));
+        let new_writer = SimpleWriter(BufWriter::with_capacity(1024, file));
+
+        // Swap the new writer with the old writer. Since the new file is already opened, the
+        // appender will be left in a working state.
+        ::std::mem::replace(&mut *writer, new_writer);
+
         Ok(())
     }
 }
@@ -88,6 +109,7 @@ impl FileAppenderBuilder {
             path: path,
             file: Mutex::new(SimpleWriter(BufWriter::with_capacity(1024, file))),
             encoder: self.encoder,
+            append: self.append,
         })
     }
 }
